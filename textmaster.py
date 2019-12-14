@@ -40,6 +40,8 @@ class RegexMeta:
     SHORT_WORDS = r'(\b\w{1,3}\b)'
     NINE_NUMS_4CHAN = r'(\d{9})'
 
+class ForChanText(RegexMeta):
+
     def __init__(self, data):
         self.data = data
 
@@ -109,7 +111,7 @@ class RegexMeta:
 #             print([(ent.text, ent.label_) for ent in doc.ents])
 
 
-class TPipe:
+class TwitterText(RegexMeta):
 
     HTML = r'&(\w+;)'
     MENTIONS = r'@(\w+)'
