@@ -7,40 +7,121 @@ import os
 # import spacy
 # nlp = spacy.load('en_core_web_sm')
 
-class RegexMeta:
+class OtherRegexMeta(object):
+    tag2 = r'<.*?>'
+    tag3 = r'&nbsp;'
+    URL2 = r'(https?://(www\.)?(\w+)(\.\w+))'
+    URL3 = r'(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])'
+
+class RegexMeta(object):
     # Twitter Mentions and Hashtags
     HTML = r'&(\w+;)'
     MENTIONS = r'@(\w+)'
     HASHTAGS = r'#(\w+)'
+
     # Phone Number's
     PHONE_NUMBERS = r'(\d{3}.\d{3}.\d{4}|\d{3}.\d{4})'
+
     # STRIP HTML TAGS
     HTML_4CHAN_1 = r'&#([0-9]+;)'
     HTML_4CHAN_MAIN = r'&(\w+;|[#0-9]+;)'
     ALL_TAGS = r'(</?.*?>)'# Every tag enclose in a <>
-    # tag2 = r'<.*?>'
-    # tag3 = r'&nbsp;'
+
     #remove special characters, numbers, punctuations
     REMOVE_PAT1 = r"[^a-zA-Z#]"
     REMOVE_PAT2 = r"[^A-Za-z0-9^,!.\/'+-=]"
     REMOVE_PAT2 = r"[^a-zA-Z0-9#@']"
+
     # White space 2x or more
     STRIP_SPACE = r"\s{2,}"# Whitespace more than 2 chars
+
     # URL's
     URL1 = r'(https?://[^\s<>"]+|www\.[^\s<>"]+)'#url's
-    URL2 = r'(https?://(www\.)?(\w+)(\.\w+))'
-    URL3 = r'(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])'
+
     # Datatime
     DATE_TIME = r'(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})'
+
     #IP Address
     IP = r'\b(\d{1,4}[.]\d{1,4}[.]\d{1,4}[.]\d{1,4})\b'
+
     # EMAIL Addresses
     EMAILS = r'([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)'
+
     # Words 1-3 characters
     SHORT_WORDS = r'(\b\w{1,3}\b)'
     NINE_NUMS_4CHAN = r'(\d{9})'
 
-class ForChanText(RegexMeta):
+
+class TextMasterMeta(object, RegexMeta):
+
+    def substitute_pattern(pat, replacement, text):
+        text = re.sub(pat, replacement, text)
+        return str(text)
+
+    def tweet_length(text):
+        tweet_length = len(text) - text.count(' ')
+        return str(tweet_length)
+
+    def count_punctuation(text):
+        count = sum([1 for char in text if char in string.punctuation])
+        return str(round(count/(len(text) - text.count(" ")), 3)*100)
+
+    def findall_pattern(pat, text):
+        '''Uses re.findall
+
+        :text: list, pandas DataFrame, ndarray
+        '''
+        pattern = re.findall(pat, text)
+        return str(pattern)
+# https://towardsdatascience.com/almost-real-time-twitter-sentiment-analysis-with-tweep-vader-f88ed5b93b1c
+    def remove_pattern(input_txt, pattern):
+        r = re.findall(pattern, input_txt)
+        for i in r:
+            input_txt = re.sub(i, '', input_txt)        
+        return input_txt
+# https://towardsdatascience.com/almost-real-time-twitter-sentiment-analysis-with-tweep-vader-f88ed5b93b1c
+    def clean_tweets(lst):
+        # remove twitter Return handles (RT @xxx:)
+        lst = np.vectorize(remove_pattern)(lst, "RT @[\w]*:")
+        # remove twitter handles (@xxx)
+        lst = np.vectorize(remove_pattern)(lst, "@[\w]*")
+        # remove URL links (httpxxx)
+        lst = np.vectorize(remove_pattern)(lst, "https?://[A-Za-z0-9./]*")
+        # remove special characters, numbers, punctuations (except for #)
+        lst = np.core.defchararray.replace(lst, "[^a-zA-Z#]", " ")
+        return lst
+
+    def textblob_sentiment_raw(tweets):
+        analysis = TextBlob(tweets)
+        sent = analysis.sentiment.polarity
+        return str(sent)
+
+    def vader_sentiment_analyzer_scores(text):
+        score = analyser.polarity_scores(text)
+        lb = score['compound']
+        if lb >= 0.05:
+            return 1
+        elif (lb > -0.05) and (lb < 0.05):
+            return 0
+        else:
+            return -1
+
+    def google_translate_sentiment_analyzer_scores(text, engl=True):
+        if engl:
+            trans = text
+        else:
+            trans = translator.translate(text).text
+        score = analyser.polarity_scores(trans)
+        lb = score['compound']
+        if lb >= 0.05:
+            return 1
+        elif (lb > -0.05) and (lb < 0.05):
+            return 0
+        else:
+            return -1
+
+
+class ForChanText(object, TextMasterMeta):
 
     def __init__(self, data):
         self.data = data
@@ -74,7 +155,8 @@ class ForChanText(RegexMeta):
         data = data.lower()
         data = cls._textblob_sentiment_raw(data)
         return data
-
+'''
+Put these into TextMasterMeta
     @staticmethod
     def _textblob_sentiment(data):
         analysis = TextBlob(data)
@@ -90,38 +172,10 @@ class ForChanText(RegexMeta):
         analysis = TextBlob(data)
         sent = analysis.sentiment.polarity
         return str(sent)
-
-######################
-# class Spipe:
-
-#     def __init__(self, twitter_stream):
-#         self.twitter_stream = twitter_stream
-
-#     def __repr__(self):
-#         return f'TPipe: {self.twitter_stream!r}'
-
-#     @classmethod
-#     def spacy_stream_pipeline(cls, stream):
-#         cls.stage1(stream)
+'''
 
 
-#     @staticmethod
-#     def stage1(text):
-#         for doc in nlp.pipe(text):
-#             print([(ent.text, ent.label_) for ent in doc.ents])
-
-
-class TwitterText(RegexMeta):
-
-    HTML = r'&(\w+;)'
-    MENTIONS = r'@(\w+)'
-    HASHTAGS = r'#(\w+)'
-    # remove special characters, numbers, punctuations
-    REMOVE_PAT1 = r"[^a-zA-Z#]"
-    REMOVE_PAT2 = r"[^A-Za-z0-9^,!.\/'+-=]"
-    REMOVE_PAT3 = r"[^a-zA-Z0-9#@']"
-    # Strip Whitespace more than 2 characters
-    STRIP_SPACE = "\s{2,}"
+class TwitterText(object, TextMasterMeta):
 
     def __init__(self, twitter_stream: str):
         self.twitter_stream = twitter_stream
@@ -148,34 +202,29 @@ class TwitterText(RegexMeta):
         text = re.sub(HTML, '', text)
         return str(text)
 
-def substitute_pattern(pat, replacement, text):
-    text = re.sub(pat, replacement, text)
-    return str(text)
 
 
-def textblob_sentiment_raw(tweets):
-    analysis = TextBlob(tweets)
-    sent = analysis.sentiment.polarity
-    return str(sent)
 
 
-def tweet_length(text):
-    tweet_length = len(text) - text.count(' ')
-    return str(tweet_length)
+######################
+# class Spipe:
+
+#     def __init__(self, twitter_stream):
+#         self.twitter_stream = twitter_stream
+
+#     def __repr__(self):
+#         return f'TPipe: {self.twitter_stream!r}'
+
+#     @classmethod
+#     def spacy_stream_pipeline(cls, stream):
+#         cls.stage1(stream)
 
 
-def count_punc(text):
-    count = sum([1 for char in text if char in string.punctuation])
-    return str(round(count/(len(text) - text.count(" ")), 3)*100)
+#     @staticmethod
+#     def stage1(text):
+#         for doc in nlp.pipe(text):
+#             print([(ent.text, ent.label_) for ent in doc.ents])
 
-
-def findall_pattern(pat, text):
-    '''Uses re.findall
-
-    :text: list, pandas DataFrame, ndarray
-    '''
-    pattern = re.findall(pat, text)
-    return str(pattern)
 
 # class TwitterPostprocessing(object):
 
@@ -198,9 +247,6 @@ def findall_pattern(pat, text):
 #         counter = sorted(Counter(all_words).elements())
 #         return pd.Series(counter)
 
-# HTML = r'&(\w+;)'
-# MENTIONS = r'@(\w+)'
-# HASHTAGS = r'#(\w+)'
 
 # def sub_html(pat, replacement, text):
 #     text = re.sub(pat, replacement, text)
@@ -210,21 +256,6 @@ def findall_pattern(pat, text):
 #     text = re.sub(STRIP_SPACE, '', text)
 #     return str(text)
 
-# def findall_pattern(pat, text):
-#     '''Uses re.findall
-#     :text: list, pandas DataFrame, ndarray
-#     '''
-#     pattern = re.findall(pat, text)
-#     return str(pattern)
-
-# def tweet_length(text):
-#     tweet_length = len(text) - text.count(' ')
-#     return str(tweet_length)
-
-
-# def count_punc(text):
-#     count = sum([1 for char in text if char in string.punctuation])
-#     return str(round(count/(len(text) - text.count(" ")), 3)*100)
 
 # def textblob_sentiment_raw(tweets):
 #     REMOVE_PAT2 = r"[%$*;\"_(),!.\/'+-=]"

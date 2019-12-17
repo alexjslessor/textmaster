@@ -1,0 +1,10 @@
+googletrans
+textblob
+vaderSentiment
+python-twitter
+pandas
+spacy
+boto3
+redis
+sqlalchemy
+
