@@ -7,11 +7,35 @@ import os
 # import spacy
 # nlp = spacy.load('en_core_web_sm')
 
+'''
+Emojis, theres 2 libraries for this:
+https://emojis.readthedocs.io/en/latest/
+https://github.com/carpedm20/emoji/
+http://www.unicode.org/emoji/charts/full-emoji-list.html
+https://www.webfx.com/tools/emoji-cheat-sheet/
+
+Good Articles:
+https://towardsdatascience.com/extracting-twitter-data-pre-processing-and-sentiment-analysis-using-python-3-0-7192bd8b47cf
+
+'''
+
+'''
+310674  2001-09-11 16:12:05     Skytel  [005042977]     A       ALPHA    Phillip.Blakeman@usarec.army.mil|hey| Where are my DONUTS? Mimi
+26510   2001-09-11 08:14:59     Skytel  [005206260]     B       ALPHA    IngallsBW@hqmc.usmc.mil|Warning Warning!! DCID EWG MTG This Morning at 0900|I will go unless otherwi    se advised. Bryan (69
+28579   2001-09-11 08:24:44     Skytel  [005206261]     B       ALPHA    IngallsBW@hqmc.usmc.mil|FW: Warning Warning!! DCID EWG MTG This Morning at 0900|Ray,be at the CMO Of    fices for the subject meeting. Bry
+87201   2001-09-11 10:21:42     Skytel  [004690665]     C       ALPHA    jfraller@usss.treas.gov|(no subject)|Car bomb 15th and F, NW. HIjacked plane enroute DC.
+107207  2001-09-11 10:49:59     Skytel  [005201647]     D       ALPHA    jtillman@usss.treas.gov|Bob.....following have been accounted for |BROWN, CASSITY, DADE, GROOVER, KE    NDRICK, KLENNER, LEWIS, WOLFEN, BOWSER, ALLCMCA PERSONNEL --------------554DC0DF3A8507539115AA1F Content-Type: text/x-vcard;
+107736  2001-09-11 10:50:44     Skytel  [005055742]     D       ALPHA    wenloe@usss.treas.gov|(no subject)|ALL SFO AGENTS AND SUPERVISORS: CALL INTO THE DUTY DESK IMMEDIATE    LY BY TELEPHONE OR RADIO. 
+141555  2001-09-11 11:33:59     Skytel  [005081201]     A       ALPHA    dholland@associates.usss.treas.gov|Urgent!|ALL NEW YORK SECRET SERVICES PERSONNEL -- DO NOT GO INTO     NEW YORK CITY! GO TO THE NEAREST RO! ANY QUESTIONS CALL HEADQUATERS AT406-5988. --------------E9F8E9579C859A005E8589A3 C
+1275166  2001-09-11 14:58:57     Skytel  [004690665]     C       ALPHA    jfraller@usss.treas.gov|FYI|USSS K-9 alerted on cars at 10th &and 18th & Penn 
+'''
+
 class OtherRegexMeta(object):
     tag2 = r'<.*?>'
     tag3 = r'&nbsp;'
     URL2 = r'(https?://(www\.)?(\w+)(\.\w+))'
     URL3 = r'(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])'
+    EMAIL2 = r'(\w+@\w+\.{1}\w+)'
 
 class RegexMeta(object):
     # Twitter Mentions and Hashtags
@@ -47,9 +71,35 @@ class RegexMeta(object):
     # EMAIL Addresses
     EMAILS = r'([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)'
 
+
     # Words 1-3 characters
     SHORT_WORDS = r'(\b\w{1,3}\b)'
     NINE_NUMS_4CHAN = r'(\d{9})'
+# https://towardsdatascience.com/extracting-twitter-data-pre-processing-and-sentiment-analysis-using-python-3-0-7192bd8b47cf
+    # Happy Emoticons
+    emoticons_happy = set([
+        ':-)', ':)', ';)', ':o)', ':]', ':3', ':c)', ':>', '=]', '8)', '=)', ':}',
+        ':^)', ':-D', ':D', '8-D', '8D', 'x-D', 'xD', 'X-D', 'XD', '=-D', '=D',
+        '=-3', '=3', ':-))', ":'-)", ":')", ':*', ':^*', '>:P', ':-P', ':P', 'X-P',
+        'x-p', 'xp', 'XP', ':-p', ':p', '=p', ':-b', ':b', '>:)', '>;)', '>:-)',
+        '<3'
+        ])
+    # Sad Emoticons
+    emoticons_sad = set([
+        ':L', ':-/', '>:/', ':S', '>:[', ':@', ':-(', ':[', ':-||', '=L', ':<',
+        ':-[', ':-<', '=\\', '=/', '>:(', ':(', '>.<', ":'-(", ":'(", ':\\', ':-c',
+        ':c', ':{', '>:\\', ';('
+        ])
+    emoticons = emoticons_happy.union(emoticons_sad)
+    #Emoji patterns
+    emoji_pattern = re.compile("["
+            u"\U0001F600-\U0001F64F"  # emoticons
+            u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+            u"\U0001F680-\U0001F6FF"  # transport & map symbols
+            u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+            u"\U00002702-\U000027B0"
+            u"\U000024C2-\U0001F251"
+            "]+", flags=re.UNICODE)
 
 
 class TextMasterMeta(object, RegexMeta):
@@ -73,6 +123,51 @@ class TextMasterMeta(object, RegexMeta):
         '''
         pattern = re.findall(pat, text)
         return str(pattern)
+
+    def count_emojis(self, text: str):
+        '''
+        import emojis
+        '''
+        emoj = emojis.count(text)
+        return emoj
+
+    def count_unique_emojis(self, text: str, unique=True):
+        '''
+        https://emojis.readthedocs.io/en/latest/api.html#sample-code
+        import emojis
+        '''
+        emoj = emojis.count(text)
+        return emoj
+
+    def decode_emojis(self, text: str):
+        '''
+        https://emojis.readthedocs.io/en/latest/api.html#sample-code
+        import emojis
+        '''
+        emoj = emojis.decode(text)
+
+    def clean_tweets(tweet):
+        stop_words = set(stopwords.words('english'))
+        word_tokens = word_tokenize(tweet)
+        #after tweepy preprocessing the colon symbol left remain after      #removing mentions
+        tweet = re.sub(r':', '', tweet)
+        tweet = re.sub(r'‚Ä¶', '', tweet)
+        #replace consecutive non-ASCII characters with a space
+        tweet = re.sub(r'[^\x00-\x7F]+',' ', tweet)
+        #remove emojis from tweet
+        tweet = emoji_pattern.sub(r'', tweet)
+        #filter using NLTK library append it to a string
+        filtered_tweet = [w for w in word_tokens if not w in stop_words]
+        filtered_tweet = []
+        #looping through conditions
+        for w in word_tokens:
+        #check tokens against stop words , emoticons and punctuations
+            if w not in stop_words and w not in emoticons and w not in string.punctuation:
+                filtered_tweet.append(w)
+        return ' '.join(filtered_tweet)
+        #print(word_tokens)
+        #print(filtered_sentence)return tweet
+
 # https://towardsdatascience.com/almost-real-time-twitter-sentiment-analysis-with-tweep-vader-f88ed5b93b1c
     def remove_pattern(input_txt, pattern):
         r = re.findall(pattern, input_txt)
