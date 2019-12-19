@@ -102,7 +102,7 @@ class RegexMeta(object):
             "]+", flags=re.UNICODE)
 
 
-class TextMasterMeta(object, RegexMeta):
+class TextMasterFuntions(object, RegexMeta):
 
     def substitute_pattern(pat, replacement, text):
         text = re.sub(pat, replacement, text)
