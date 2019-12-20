@@ -85,10 +85,10 @@ if __name__ == "__main__":# THIS IS FOR TESTING
     print(sue.pay)
     print(sue)
     #pg:883/1594
-    tom = Manager('Tom Jones', 'mgr', 50000)
+    tom = Manager('Tom Jones', 50000)
     tom.giveRaise(.10)
     print(tom.lastName())
-    print(tom)
+    print(tom.job)
 
 
 '''
@@ -109,3 +109,12 @@ Inheritance
 When we make a Manager, we pass in a name, and an optional job and pay as before—because Manager had no __init__ constructor,
 it inherits that in Person . Here’s the new version’s output:
 '''
+'''
+- Instance creation—filling out instance attributes
+- Behavior methods—encapsulating logic in a class’s methods
+- Operator overloading—providing behavior for built-in operations like printing
+- Customizing behavior—redefining methods in subclasses to specialize them
+- Customizing constructors—adding initialization logic to superclass steps
+- Most of these concepts are based upon just three simple ideas: the inheritance search
+'''
+

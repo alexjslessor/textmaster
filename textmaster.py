@@ -1,25 +1,22 @@
 from unicodedata import normalize
-# from datetime import datetime
+from datetime import datetime
 import string
 from textblob import TextBlob
 import re
 import os
 # import spacy
 # nlp = spacy.load('en_core_web_sm')
-
 '''
 Emojis, theres 2 libraries for this:
 https://emojis.readthedocs.io/en/latest/
 https://github.com/carpedm20/emoji/
 http://www.unicode.org/emoji/charts/full-emoji-list.html
 https://www.webfx.com/tools/emoji-cheat-sheet/
-
 Good Articles:
 https://towardsdatascience.com/extracting-twitter-data-pre-processing-and-sentiment-analysis-using-python-3-0-7192bd8b47cf
-
 '''
 
-'''
+df = '''
 310674  2001-09-11 16:12:05     Skytel  [005042977]     A       ALPHA    Phillip.Blakeman@usarec.army.mil|hey| Where are my DONUTS? Mimi
 26510   2001-09-11 08:14:59     Skytel  [005206260]     B       ALPHA    IngallsBW@hqmc.usmc.mil|Warning Warning!! DCID EWG MTG This Morning at 0900|I will go unless otherwi    se advised. Bryan (69
 28579   2001-09-11 08:24:44     Skytel  [005206261]     B       ALPHA    IngallsBW@hqmc.usmc.mil|FW: Warning Warning!! DCID EWG MTG This Morning at 0900|Ray,be at the CMO Of    fices for the subject meeting. Bry
@@ -37,7 +34,7 @@ class OtherRegexMeta(object):
     URL3 = r'(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])'
     EMAIL2 = r'(\w+@\w+\.{1}\w+)'
 
-class RegexMeta(object):
+class MetaRegex(object):
     # Twitter Mentions and Hashtags
     HTML = r'&(\w+;)'
     MENTIONS = r'@(\w+)'
@@ -49,7 +46,7 @@ class RegexMeta(object):
     # STRIP HTML TAGS
     HTML_4CHAN_1 = r'&#([0-9]+;)'
     HTML_4CHAN_MAIN = r'&(\w+;|[#0-9]+;)'
-    ALL_TAGS = r'(</?.*?>)'# Every tag enclose in a <>
+    ALL_HTML_TAGS = r'(</?.*?>)'# Every tag enclose in a <>
 
     #remove special characters, numbers, punctuations
     REMOVE_PAT1 = r"[^a-zA-Z#]"
@@ -71,11 +68,10 @@ class RegexMeta(object):
     # EMAIL Addresses
     EMAILS = r'([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)'
 
-
     # Words 1-3 characters
     SHORT_WORDS = r'(\b\w{1,3}\b)'
     NINE_NUMS_4CHAN = r'(\d{9})'
-# https://towardsdatascience.com/extracting-twitter-data-pre-processing-and-sentiment-analysis-using-python-3-0-7192bd8b47cf
+
     # Happy Emoticons
     emoticons_happy = set([
         ':-)', ':)', ';)', ':o)', ':]', ':3', ':c)', ':>', '=]', '8)', '=)', ':}',
@@ -101,8 +97,7 @@ class RegexMeta(object):
             u"\U000024C2-\U0001F251"
             "]+", flags=re.UNICODE)
 
-
-class TextMasterFuntions(object, RegexMeta):
+class MetaFuncs(object):
 
     def substitute_pattern(pat, replacement, text):
         text = re.sub(pat, replacement, text)
@@ -124,14 +119,14 @@ class TextMasterFuntions(object, RegexMeta):
         pattern = re.findall(pat, text)
         return str(pattern)
 
-    def count_emojis(self, text: str):
+    def count_emojis(text: str):
         '''
         import emojis
         '''
         emoj = emojis.count(text)
         return emoj
 
-    def count_unique_emojis(self, text: str, unique=True):
+    def count_unique_emojis(text: str, unique=True):
         '''
         https://emojis.readthedocs.io/en/latest/api.html#sample-code
         import emojis
@@ -139,7 +134,7 @@ class TextMasterFuntions(object, RegexMeta):
         emoj = emojis.count(text)
         return emoj
 
-    def decode_emojis(self, text: str):
+    def decode_emojis(text: str):
         '''
         https://emojis.readthedocs.io/en/latest/api.html#sample-code
         import emojis
@@ -215,87 +210,89 @@ class TextMasterFuntions(object, RegexMeta):
         else:
             return -1
 
-
-class ForChanText(object, TextMasterMeta):
+class ForChanText(MetaRegex, MetaFuncs):
 
     def __init__(self, data):
         self.data = data
 
+    def __repr__(self):#pg 879/1594
+        return '[ForChanText: %s]' % (self.data)
+
     @classmethod
     def extract_url(cls, data):
-        data = re.findall(cls.URL1, str(data))
-        return str(data)
-
+        return cls.substitute_pattern(cls.ALL_HTML_TAGS, '', data)
+        
     @classmethod
     def strip_html(cls, data):
-        data = re.sub(cls.ALL_TAGS, ' ', str(data))
-        data = re.sub(cls.HTML_4CHAN_MAIN, ' ', data)
-        data = re.sub(cls.NINE_NUMS_4CHAN, ' ', data)
-        data = re.sub(cls.STRIP_SPACE, '', data)
+        data = substitute_pattern(cls.ALL_TAGS, ' ', str(data))
+        data = substitute_pattern(cls.HTML_4CHAN_MAIN, ' ', data)
+        data = substitute_pattern(cls.NINE_NUMS_4CHAN, ' ', data)
+        data = substitute_pattern(cls.STRIP_SPACE, '', data)
         data = data.strip()
-        # data = re.sub(r'</?.*?>', ' ', data)
-        # data = re.sub(r'&(\w+;|[#0-9]+;)', ' ', data)
-        # data = re.sub(r'(\d{9})', ' ', data)
-        # data = re.sub(r'\s{2,}', '', data)
         return data
 
     @classmethod
-    def textblob_sentiment(cls, data):
-        data = re.sub(cls.ALL_TAGS, ' ', str(data))
-        data = re.sub(cls.HTML_4CHAN_MAIN, ' ', data)
-        data = re.sub(cls.NINE_NUMS_4CHAN, ' ', data)
-        data = re.sub(cls.URL1, ' ', data)
-        data = re.sub(cls.STRIP_SPACE, '', data)
+    def textblob_sentiment_col(cls, data):
+        data = substitute_pattern(cls.ALL_TAGS, ' ', str(data))
+        data = substitute_pattern(cls.HTML_4CHAN_MAIN, ' ', data)
+        data = substitute_pattern(cls.NINE_NUMS_4CHAN, ' ', data)
+        data = substitute_pattern(cls.URL1, ' ', data)
+        data = substitute_pattern(cls.STRIP_SPACE, '', data)
         data = data.strip()
         data = data.lower()
-        data = cls._textblob_sentiment_raw(data)
+        data = cls.textblob_sentiment_raw(data)
         return data
-'''
-Put these into TextMasterMeta
-    @staticmethod
-    def _textblob_sentiment(data):
-        analysis = TextBlob(data)
-        if analysis.sentiment.polarity > 0:
-            return 1
-        elif analysis.sentiment.polarity == 0:
-            return 0
-        else:
-            return -1
-    
-    @staticmethod
-    def _textblob_sentiment_raw(data):
-        analysis = TextBlob(data)
-        sent = analysis.sentiment.polarity
-        return str(sent)
-'''
 
 
-class TwitterText(object, TextMasterMeta):
+# class TwitterText(RegexMeta):
 
-    def __init__(self, twitter_stream: str):
-        self.twitter_stream = twitter_stream
+#     def __init__(self, twitter_stream: str):
+#         self.twitter_stream = twitter_stream
 
-    def __repr__(self):
-        return f'TPipe: {self.twitter_stream!r}'
+#     def __repr__(self):
+#         return f'TPipe: {self.twitter_stream!r}'
 
-    @classmethod
-    def process_text(cls, stream):
-        return cls.normalize_text(stream)
-        # cls.strip_html(stream)
+#     @classmethod
+#     def process_text(cls, stream):
+#         return cls.normalize_text(stream)
+#         # cls.strip_html(stream)
 
-    @staticmethod
-    def normalize_text(text):
-        # text = str(text).encode('utf-8').decode('utf-8')
-        # text = normalize('NFKD', text)
-        text = text.strip()
-        text = text.lower()
-        return text
+#     @staticmethod
+#     def normalize_text(text):
+#         # text = str(text).encode('utf-8').decode('utf-8')
+#         # text = normalize('NFKD', text)
+#         text = text.strip()
+#         text = text.lower()
+#         return text
 
-    @staticmethod
-    def strip_html(text):
-        HTML = r'&(\w+;)'
-        text = re.sub(HTML, '', text)
-        return str(text)
+#     @staticmethod
+#     def strip_html(text):
+#         HTML = r'&(\w+;)'
+#         text = re.sub(HTML, '', text)
+#         return str(text)
+
+if __name__ == "__main__":
+
+    df = 'www.textstuff.com ......... <p class="dasfdawsfa"> fadfsdfsgdshsfdghsdf </p>]'
+    t1 = ForChanText.extract_url(df)
+    # t1 = t1.tweet_length(df)
+    print(t1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -375,3 +372,5 @@ class TwitterText(object, TextMasterMeta):
 #     analysis = TextBlob(text)
 #     sent = analysis.sentiment.polarity
 #     return pd.Series(sent)
+
+
