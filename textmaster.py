@@ -4,6 +4,11 @@ import string
 from textblob import TextBlob
 import re
 import os
+import emojis
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from .stopwords_py import Stops
+#note: depending on how you installed (e.g., using source code download versus pip install), you may need to import like this:
+#from vaderSentiment import SentimentIntensityAnalyzer
 # import spacy
 # nlp = spacy.load('en_core_web_sm')
 '''
@@ -57,7 +62,10 @@ class MetaRegex(object):
     STRIP_SPACE = r"\s{2,}"# Whitespace more than 2 chars
 
     # URL's
-    URL1 = r'(https?://[^\s<>"]+|www\.[^\s<>"]+)'#url's
+    URL1 = r'(https?://[A-Za-z0-9./]*)'
+    # URL1 = r'(https?://[^\s<>"]+|www\.[^\s<>"]+)'#url's
+    # URL1 = r'(https?://([^\s<>"]+)|www\.([^\s<>"]+))'#url's
+    # URL1 = r'(https?://[^\s<>"]+|www\.[^\s<>"]+.\w+/[\w\d]+/\w\d)'#url's
 
     # Datatime
     DATE_TIME = r'(\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2})'
@@ -99,19 +107,19 @@ class MetaRegex(object):
 
 class MetaFuncs(object):
 
-    def substitute_pattern(pat, replacement, text):
+    def substitute_text_pattern(pat, replacement, text):
         text = re.sub(pat, replacement, text)
         return str(text)
 
-    def tweet_length(text):
-        tweet_length = len(text) - text.count(' ')
-        return str(tweet_length)
+    def count_text_length(text):
+        text = len(text) - text.count(' ')
+        return str(text)
 
-    def count_punctuation(text):
+    def count_text_punctuation(text):
         count = sum([1 for char in text if char in string.punctuation])
         return str(round(count/(len(text) - text.count(" ")), 3)*100)
 
-    def findall_pattern(pat, text):
+    def findall_text_pattern(pat, text):
         '''Uses re.findall
 
         :text: list, pandas DataFrame, ndarray
@@ -140,6 +148,12 @@ class MetaFuncs(object):
         import emojis
         '''
         emoj = emojis.decode(text)
+
+    def strip_stopwords(text: str):
+        words = set(Stops.stop_words)
+        filtered_words = [w for w in text.split(' ') if not w in words]
+        return str(filtered_words)
+
 
     def clean_tweets(tweet):
         stop_words = set(stopwords.words('english'))
@@ -186,6 +200,17 @@ class MetaFuncs(object):
         sent = analysis.sentiment.polarity
         return str(sent)
 
+    def vader_sentiment_raw(text):
+        analyzer = SentimentIntensityAnalyzer()
+        sent = analyzer.polarity_scores(text)['compound']
+        return str(sent)
+
+
+# analyzer = SentimentIntensityAnalyzer()
+# for sentence in sentences:
+#     vs = analyzer.polarity_scores(sentence)
+#     print("{:-<65} {}".format(sentence, str(vs)))
+
     def vader_sentiment_analyzer_scores(text):
         score = analyser.polarity_scores(text)
         lb = score['compound']
@@ -218,31 +243,72 @@ class ForChanText(MetaRegex, MetaFuncs):
     def __repr__(self):#pg 879/1594
         return '[ForChanText: %s]' % (self.data)
 
+    def __str__(self):#pg 879/1594
+        return '[ForChanText: %s]' % (self.data)
+
     @classmethod
     def extract_url(cls, data):
-        return cls.substitute_pattern(cls.ALL_HTML_TAGS, '', data)
+        return cls.findall_text_pattern(cls.URL1, data)
         
     @classmethod
+    def extract_phone_numbers(cls, data):
+        return cls.findall_text_pattern(cls.PHONE_NUMBERS, data)
+
+    @classmethod
+    def extract_ip_addrs(cls, data):
+        return cls.findall_text_pattern(cls.IP, data)
+
+    @classmethod
+    def extract_email_addrs(cls, data):
+        return cls.findall_text_pattern(cls.EMAILS, data)
+
+    @classmethod
+    def extract_text_length_count(cls, data):
+        return cls.count_text_length(data)
+
+    @classmethod
+    def extract_text_punctuation_count(cls, data):
+        return cls.count_text_punctuation(data)
+
+    @classmethod
+    def extract_text_emoji_count(cls, data):
+        return cls.count_emojis(data)
+
+    @classmethod
     def strip_html(cls, data):
-        data = substitute_pattern(cls.ALL_TAGS, ' ', str(data))
-        data = substitute_pattern(cls.HTML_4CHAN_MAIN, ' ', data)
-        data = substitute_pattern(cls.NINE_NUMS_4CHAN, ' ', data)
-        data = substitute_pattern(cls.STRIP_SPACE, '', data)
+        data = cls.substitute_text_pattern(cls.ALL_HTML_TAGS, ' ', str(data))
+        data = cls.substitute_text_pattern(cls.HTML_4CHAN_MAIN, ' ', data)
+        data = cls.substitute_text_pattern(cls.NINE_NUMS_4CHAN, ' ', data)
+        data = cls.strip_stopwords(data)
+        data = cls.substitute_text_pattern(cls.STRIP_SPACE, '', data)
         data = data.strip()
         return data
 
     @classmethod
-    def textblob_sentiment_col(cls, data):
-        data = substitute_pattern(cls.ALL_TAGS, ' ', str(data))
-        data = substitute_pattern(cls.HTML_4CHAN_MAIN, ' ', data)
-        data = substitute_pattern(cls.NINE_NUMS_4CHAN, ' ', data)
-        data = substitute_pattern(cls.URL1, ' ', data)
-        data = substitute_pattern(cls.STRIP_SPACE, '', data)
+    def extract_textblob_sentiment(cls, data):
+        data = cls.substitute_text_pattern(cls.ALL_HTML_TAGS, ' ', str(data))
+        data = cls.substitute_text_pattern(cls.HTML_4CHAN_MAIN, ' ', data)
+        data = cls.substitute_text_pattern(cls.NINE_NUMS_4CHAN, ' ', data)
+        data = cls.substitute_text_pattern(cls.URL1, ' ', data)
+        data = cls.substitute_text_pattern(cls.STRIP_SPACE, '', data)
         data = data.strip()
         data = data.lower()
+        # data = cls.strip_stopwords(data)
         data = cls.textblob_sentiment_raw(data)
         return data
 
+    @classmethod
+    def extract_vader_sentiment(cls, data):
+        data = cls.substitute_text_pattern(cls.ALL_HTML_TAGS, ' ', str(data))
+        data = cls.substitute_text_pattern(cls.HTML_4CHAN_MAIN, ' ', data)
+        data = cls.substitute_text_pattern(cls.NINE_NUMS_4CHAN, ' ', data)
+        data = cls.substitute_text_pattern(cls.URL1, ' ', data)
+        data = cls.substitute_text_pattern(cls.STRIP_SPACE, '', data)
+        data = data.strip()
+        data = data.lower()
+        # data = cls.strip_stopwords(data)
+        data = cls.vader_sentiment_raw(data)
+        return data
 
 # class TwitterText(RegexMeta):
 
