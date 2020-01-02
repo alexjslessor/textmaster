@@ -79,7 +79,7 @@ class MetaRegex(object):
     # Words 1-3 characters
     SHORT_WORDS = r'(\b\w{1,3}\b)'
     NINE_NUMS_4CHAN = r'(\d{9})'
-
+    LINKS = r'‚Ä¶'
     # Happy Emoticons
     emoticons_happy = set([
         ':-)', ':)', ';)', ':o)', ':]', ':3', ':c)', ':>', '=]', '8)', '=)', ':}',
@@ -310,32 +310,61 @@ class ForChanText(MetaRegex, MetaFuncs):
         data = cls.vader_sentiment_raw(data)
         return data
 
-# class TwitterText(RegexMeta):
+class TwitterText(MetaRegex, MetaFuncs):
 
-#     def __init__(self, twitter_stream: str):
-#         self.twitter_stream = twitter_stream
+    def __init__(self, twitter_stream: str):
+        self.twitter_stream = twitter_stream
 
-#     def __repr__(self):
-#         return f'TPipe: {self.twitter_stream!r}'
+    def __repr__(self):
+        return f'TPipe: {self.twitter_stream!r}'
 
-#     @classmethod
-#     def process_text(cls, stream):
-#         return cls.normalize_text(stream)
-#         # cls.strip_html(stream)
+    @classmethod
+    def extract_mentions(cls, data):
+        return cls.findall_text_pattern(cls.MENTIONS, data)
 
-#     @staticmethod
-#     def normalize_text(text):
-#         # text = str(text).encode('utf-8').decode('utf-8')
-#         # text = normalize('NFKD', text)
-#         text = text.strip()
-#         text = text.lower()
-#         return text
+    @classmethod
+    def extract_hashtags(cls, data):
+        return cls.findall_text_pattern(cls.HASHTAGS, data)
 
-#     @staticmethod
-#     def strip_html(text):
-#         HTML = r'&(\w+;)'
-#         text = re.sub(HTML, '', text)
-#         return str(text)
+    @classmethod
+    def extract_textblob_sentiment(cls, data):
+        data = cls.substitute_text_pattern(cls.ALL_HTML_TAGS, ' ', str(data))
+        data = cls.substitute_text_pattern(cls.HTML, ' ', data)
+        data = cls.substitute_text_pattern(cls.MENTIONS, ' ', data)
+        data = cls.substitute_text_pattern(cls.URL1, ' ', data)
+        data = cls.substitute_text_pattern(cls.IP, ' ', data)
+        data = cls.substitute_text_pattern(cls.EMAILS, ' ', data)
+        # data = cls.substitute_text_pattern(cls.SHORT_WORDS, ' ', data)#IDK about this one
+        data = cls.substitute_text_pattern(cls.LINKS, ' ', data)
+        data = cls.substitute_text_pattern(cls.emoji_pattern, ' ', data)
+        # data = cls.substitute_text_pattern(cls.MENTIONS, ' ', data)
+        # data = cls.substitute_text_pattern(cls.URL1, ' ', data)
+        data = cls.substitute_text_pattern(cls.STRIP_SPACE, '', data)
+        data = data.strip()
+        data = data.lower()
+        # data = cls.strip_stopwords(data)
+        data = cls.textblob_sentiment_raw(data)
+        return data
+
+    @classmethod
+    def extract_vader_sentiment(cls, data):
+        data = cls.substitute_text_pattern(cls.ALL_HTML_TAGS, ' ', str(data))
+        data = cls.substitute_text_pattern(cls.HTML, ' ', data)
+        data = cls.substitute_text_pattern(cls.MENTIONS, ' ', data)
+        data = cls.substitute_text_pattern(cls.URL1, ' ', data)
+        data = cls.substitute_text_pattern(cls.IP, ' ', data)
+        data = cls.substitute_text_pattern(cls.EMAILS, ' ', data)
+        # data = cls.substitute_text_pattern(cls.SHORT_WORDS, ' ', data)#IDK about this one
+        data = cls.substitute_text_pattern(cls.LINKS, ' ', data)
+        data = cls.substitute_text_pattern(cls.emoji_pattern, ' ', data)
+        # data = cls.substitute_text_pattern(cls.MENTIONS, ' ', data)
+        # data = cls.substitute_text_pattern(cls.URL1, ' ', data)
+        data = cls.substitute_text_pattern(cls.STRIP_SPACE, '', data)
+        data = data.strip()
+        data = data.lower()
+        # data = cls.strip_stopwords(data)
+        data = cls.vader_sentiment_raw(data)
+        return data
 
 if __name__ == "__main__":
 
