@@ -11,26 +11,7 @@ from .stopwords_py import Stops
 #from vaderSentiment import SentimentIntensityAnalyzer
 # import spacy
 # nlp = spacy.load('en_core_web_sm')
-'''
-Emojis, theres 2 libraries for this:
-https://emojis.readthedocs.io/en/latest/
-https://github.com/carpedm20/emoji/
-http://www.unicode.org/emoji/charts/full-emoji-list.html
-https://www.webfx.com/tools/emoji-cheat-sheet/
-Good Articles:
-https://towardsdatascience.com/extracting-twitter-data-pre-processing-and-sentiment-analysis-using-python-3-0-7192bd8b47cf
-'''
 
-df = '''
-310674  2001-09-11 16:12:05     Skytel  [005042977]     A       ALPHA    Phillip.Blakeman@usarec.army.mil|hey| Where are my DONUTS? Mimi
-26510   2001-09-11 08:14:59     Skytel  [005206260]     B       ALPHA    IngallsBW@hqmc.usmc.mil|Warning Warning!! DCID EWG MTG This Morning at 0900|I will go unless otherwi    se advised. Bryan (69
-28579   2001-09-11 08:24:44     Skytel  [005206261]     B       ALPHA    IngallsBW@hqmc.usmc.mil|FW: Warning Warning!! DCID EWG MTG This Morning at 0900|Ray,be at the CMO Of    fices for the subject meeting. Bry
-87201   2001-09-11 10:21:42     Skytel  [004690665]     C       ALPHA    jfraller@usss.treas.gov|(no subject)|Car bomb 15th and F, NW. HIjacked plane enroute DC.
-107207  2001-09-11 10:49:59     Skytel  [005201647]     D       ALPHA    jtillman@usss.treas.gov|Bob.....following have been accounted for |BROWN, CASSITY, DADE, GROOVER, KE    NDRICK, KLENNER, LEWIS, WOLFEN, BOWSER, ALLCMCA PERSONNEL --------------554DC0DF3A8507539115AA1F Content-Type: text/x-vcard;
-107736  2001-09-11 10:50:44     Skytel  [005055742]     D       ALPHA    wenloe@usss.treas.gov|(no subject)|ALL SFO AGENTS AND SUPERVISORS: CALL INTO THE DUTY DESK IMMEDIATE    LY BY TELEPHONE OR RADIO. 
-141555  2001-09-11 11:33:59     Skytel  [005081201]     A       ALPHA    dholland@associates.usss.treas.gov|Urgent!|ALL NEW YORK SECRET SERVICES PERSONNEL -- DO NOT GO INTO     NEW YORK CITY! GO TO THE NEAREST RO! ANY QUESTIONS CALL HEADQUATERS AT406-5988. --------------E9F8E9579C859A005E8589A3 C
-1275166  2001-09-11 14:58:57     Skytel  [004690665]     C       ALPHA    jfraller@usss.treas.gov|FYI|USSS K-9 alerted on cars at 10th &and 18th & Penn 
-'''
 
 class OtherRegexMeta(object):
     tag2 = r'<.*?>'
@@ -80,6 +61,7 @@ class MetaRegex(object):
     SHORT_WORDS = r'(\b\w{1,3}\b)'
     NINE_NUMS_4CHAN = r'(\d{9})'
     LINKS = r'‚Ä¶'
+    
     # Happy Emoticons
     emoticons_happy = set([
         ':-)', ':)', ';)', ':o)', ':]', ':3', ':c)', ':>', '=]', '8)', '=)', ':}',
@@ -88,12 +70,14 @@ class MetaRegex(object):
         'x-p', 'xp', 'XP', ':-p', ':p', '=p', ':-b', ':b', '>:)', '>;)', '>:-)',
         '<3'
         ])
+    
     # Sad Emoticons
     emoticons_sad = set([
         ':L', ':-/', '>:/', ':S', '>:[', ':@', ':-(', ':[', ':-||', '=L', ':<',
         ':-[', ':-<', '=\\', '=/', '>:(', ':(', '>.<', ":'-(", ":'(", ':\\', ':-c',
         ':c', ':{', '>:\\', ';('
         ])
+
     emoticons = emoticons_happy.union(emoticons_sad)
     #Emoji patterns
     emoji_pattern = re.compile("["
@@ -158,7 +142,7 @@ class MetaFuncs(object):
     def clean_tweets(tweet):
         stop_words = set(stopwords.words('english'))
         word_tokens = word_tokenize(tweet)
-        #after tweepy preprocessing the colon symbol left remain after      #removing mentions
+        #after tweepy preprocessing the colon symbol left remain after removing mentions
         tweet = re.sub(r':', '', tweet)
         tweet = re.sub(r'‚Ä¶', '', tweet)
         #replace consecutive non-ASCII characters with a space
@@ -174,16 +158,13 @@ class MetaFuncs(object):
             if w not in stop_words and w not in emoticons and w not in string.punctuation:
                 filtered_tweet.append(w)
         return ' '.join(filtered_tweet)
-        #print(word_tokens)
-        #print(filtered_sentence)return tweet
 
-# https://towardsdatascience.com/almost-real-time-twitter-sentiment-analysis-with-tweep-vader-f88ed5b93b1c
     def remove_pattern(input_txt, pattern):
         r = re.findall(pattern, input_txt)
         for i in r:
             input_txt = re.sub(i, '', input_txt)        
         return input_txt
-# https://towardsdatascience.com/almost-real-time-twitter-sentiment-analysis-with-tweep-vader-f88ed5b93b1c
+
     def clean_tweets(lst):
         # remove twitter Return handles (RT @xxx:)
         lst = np.vectorize(remove_pattern)(lst, "RT @[\w]*:")
@@ -367,7 +348,16 @@ class TwitterText(MetaRegex, MetaFuncs):
         return data
 
 if __name__ == "__main__":
-
+    df = '''
+    310674  2001-09-11 16:12:05     Skytel  [005042977]     A       ALPHA    Phillip.Blakeman@usarec.army.mil|hey| Where are my DONUTS? Mimi
+    26510   2001-09-11 08:14:59     Skytel  [005206260]     B       ALPHA    IngallsBW@hqmc.usmc.mil|Warning Warning!! DCID EWG MTG This Morning at 0900|I will go unless otherwi    se advised. Bryan (69
+    28579   2001-09-11 08:24:44     Skytel  [005206261]     B       ALPHA    IngallsBW@hqmc.usmc.mil|FW: Warning Warning!! DCID EWG MTG This Morning at 0900|Ray,be at the CMO Of    fices for the subject meeting. Bry
+    87201   2001-09-11 10:21:42     Skytel  [004690665]     C       ALPHA    jfraller@usss.treas.gov|(no subject)|Car bomb 15th and F, NW. HIjacked plane enroute DC.
+    107207  2001-09-11 10:49:59     Skytel  [005201647]     D       ALPHA    jtillman@usss.treas.gov|Bob.....following have been accounted for |BROWN, CASSITY, DADE, GROOVER, KE    NDRICK, KLENNER, LEWIS, WOLFEN, BOWSER, ALLCMCA PERSONNEL --------------554DC0DF3A8507539115AA1F Content-Type: text/x-vcard;
+    107736  2001-09-11 10:50:44     Skytel  [005055742]     D       ALPHA    wenloe@usss.treas.gov|(no subject)|ALL SFO AGENTS AND SUPERVISORS: CALL INTO THE DUTY DESK IMMEDIATE    LY BY TELEPHONE OR RADIO. 
+    141555  2001-09-11 11:33:59     Skytel  [005081201]     A       ALPHA    dholland@associates.usss.treas.gov|Urgent!|ALL NEW YORK SECRET SERVICES PERSONNEL -- DO NOT GO INTO     NEW YORK CITY! GO TO THE NEAREST RO! ANY QUESTIONS CALL HEADQUATERS AT406-5988. --------------E9F8E9579C859A005E8589A3 C
+    1275166  2001-09-11 14:58:57     Skytel  [004690665]     C       ALPHA    jfraller@usss.treas.gov|FYI|USSS K-9 alerted on cars at 10th &and 18th & Penn 
+    '''
     df = 'www.textstuff.com ......... <p class="dasfdawsfa"> fadfsdfsgdshsfdghsdf </p>]'
     t1 = ForChanText.extract_url(df)
     # t1 = t1.tweet_length(df)
